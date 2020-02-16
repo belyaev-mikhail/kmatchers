@@ -141,6 +141,10 @@ fun <T1, T2, T3, T4, T5, T6, Arg> collection(
     }
 }
 
+fun <Arg> collection(): NoResultUnapplier<Collection<Arg>> = object : NoResultUnapplier<Collection<Arg>>() {
+    override fun unapply(arg: Collection<Arg>, matcher: NoResultBuilder): Boolean = arg.isEmpty()
+}
+
 fun <T1, T2, T3, T4, T5, T6, Arg> collection(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>
 ): Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>> = object : Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>>() {

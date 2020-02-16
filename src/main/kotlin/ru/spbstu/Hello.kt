@@ -77,12 +77,17 @@ fun main() {
 
     match((0..10).asSequence()) {
         sequence(_1<Int>(), rest = sequence(_2<Int>())) of { (a, b) -> a / b }
-        sequence<Int>() of { _ ->  }
 
         otherwise { 2 }
     }
 
-    match(listOf(1,2,3,4)) {
+    val cc = collection(const { 1 }, const { 2 }, rest = _1())
+
+    match(listOf<Int>(1,2,3,4)) {
+        cc of { (it) ->
+            println(it.toList())
+        }
+
         collection(const { 1 }, const { 2 }, rest = _1()) of { (it) ->
             println(it.toList())
         }

@@ -21,6 +21,16 @@ inline fun <T1, T2, T3, T4, T5, T6, Arg, R>
 }
 
 class MatchScope<T, R>(val value: T, var result: Option<R>) {
+    inline fun <T1, T2, T3, T4, T5, T6> case(self: Unapplier<T1, T2, T3, T4, T5, T6, T>,
+                                             body: (MatchResult<T1, T2, T3, T4, T5, T6>) -> R) {
+        if(result.isEmpty()) result = self.match(value, body)
+    }
+
+    inline operator fun <T1, T2, T3, T4, T5, T6> Unapplier<T1, T2, T3, T4, T5, T6, T>
+            .invoke(body: (MatchResult<T1, T2, T3, T4, T5, T6>) -> R) {
+        if(result.isEmpty()) result = match(value, body)
+    }
+
     inline infix fun <T1, T2, T3, T4, T5, T6> Unapplier<T1, T2, T3, T4, T5, T6, T>
             .of(body: (MatchResult<T1, T2, T3, T4, T5, T6>) -> R) {
         if(result.isEmpty()) result = match(value, body)
