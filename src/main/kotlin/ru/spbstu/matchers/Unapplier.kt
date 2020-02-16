@@ -13,11 +13,14 @@ abstract class Unapplier<out T1, out T2, out T3, out T4, out T5, out T6, in Arg>
     ): Boolean
 }
 
-class Ignore<T> : Unapplier<Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, T>() {
-    override fun unapply(arg: T, matcher: MatchResultBuilder<Nothing, Nothing, Nothing, Nothing, Nothing, Nothing>): Boolean = true
+typealias NoResultBuilder = MatchResultBuilder<Nothing, Nothing, Nothing, Nothing, Nothing, Nothing>
+typealias NoResultUnapplier<Arg> = Unapplier<Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Arg>
+
+class Ignore<T> : NoResultUnapplier<T>() {
+    override fun unapply(arg: T, matcher: NoResultBuilder): Boolean = true
 }
 
-fun <T> ignore(): Unapplier<Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, T> = Ignore()
+fun <T> ignore(): NoResultUnapplier<T> = Ignore()
 
 class Arg1<T> : Unapplier<T, Nothing, Nothing, Nothing, Nothing, Nothing, T>() {
     override fun unapply(arg: T, matcher: MatchResultBuilder<T, Nothing, Nothing, Nothing, Nothing, Nothing>): Boolean {
@@ -73,17 +76,19 @@ class Arg6<T> : Unapplier<Nothing, Nothing, Nothing, Nothing, Nothing, T, T>() {
 
 fun <T> _6(): Unapplier<Nothing, Nothing, Nothing, Nothing, Nothing, T, T> = Arg6()
 
-inline fun <T1, T2, T3, T4, T5, T6, Arg> guard(crossinline body: (Arg) -> Boolean) = object : Unapplier<T1, T2, T3, T4, T5, T6, Arg>() {
-    override fun unapply(arg: Arg, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean = body(arg)
-}
+inline fun <Arg> guard(crossinline body: (Arg) -> Boolean): NoResultUnapplier<Arg> =
+    object : NoResultUnapplier<Arg>() {
+        override fun unapply(arg: Arg, matcher: NoResultBuilder): Boolean = body(arg)
+    }
 
-inline fun <T1, T2, T3, T4, T5, T6, Arg> const(crossinline body: () -> Arg) = object : Unapplier<T1, T2, T3, T4, T5, T6, Arg>() {
-    override fun unapply(arg: Arg, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean = arg == body()
-}
+inline fun <Arg> const(crossinline body: () -> Arg): NoResultUnapplier<Arg> =
+    object : NoResultUnapplier<Arg>() {
+        override fun unapply(arg: Arg, matcher: NoResultBuilder): Boolean = arg == body()
+    }
 
 fun <T1, T2, T3, T4, T5, T6, Arg> notNull(
     inner: Unapplier<T1, T2, T3, T4, T5, T6, Arg>
-) = object : Unapplier<T1, T2, T3, T4, T5, T6, Arg?>() {
+): Unapplier<T1, T2, T3, T4, T5, T6, Arg?> = object : Unapplier<T1, T2, T3, T4, T5, T6, Arg?>() {
     override fun unapply(arg: Arg?, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
         arg ?: return false
         return inner.unapply(arg, matcher)
@@ -93,7 +98,7 @@ fun <T1, T2, T3, T4, T5, T6, Arg> notNull(
 fun <T1, T2, T3, T4, T5, T6, Arg> sequence(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>,
     rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>>
-) = object : Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>>() {
+): Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = object : Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>>() {
     override fun unapply(arg: Sequence<Arg>, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
         val it = arg.iterator()
         for(e in elements) {
@@ -104,9 +109,14 @@ fun <T1, T2, T3, T4, T5, T6, Arg> sequence(
     }
 }
 
+fun <Arg> sequence(): NoResultUnapplier<Sequence<Arg>> = object : NoResultUnapplier<Sequence<Arg>>() {
+    override fun unapply(arg: Sequence<Arg>, matcher: NoResultBuilder): Boolean =
+        !arg.iterator().hasNext()
+}
+
 fun <T1, T2, T3, T4, T5, T6, Arg> sequence(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>
-) = object : Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>>() {
+): Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = object : Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>>() {
     override fun unapply(arg: Sequence<Arg>, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
         val it = arg.iterator()
         for(e in elements) {
@@ -120,7 +130,7 @@ fun <T1, T2, T3, T4, T5, T6, Arg> sequence(
 fun <T1, T2, T3, T4, T5, T6, Arg> collection(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>,
     rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>>
-) = object : Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>>() {
+): Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>> = object : Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>>() {
     override fun unapply(arg: Collection<Arg>, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
         val it = arg.iterator()
         for(e in elements) {
@@ -133,7 +143,7 @@ fun <T1, T2, T3, T4, T5, T6, Arg> collection(
 
 fun <T1, T2, T3, T4, T5, T6, Arg> collection(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>
-) = object : Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>>() {
+): Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>> = object : Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>>() {
     override fun unapply(arg: Collection<Arg>, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
         val it = arg.iterator()
         for(e in elements) {

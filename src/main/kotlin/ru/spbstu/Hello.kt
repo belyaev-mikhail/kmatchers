@@ -5,10 +5,11 @@ import ru.spbstu.matchers.*
 data class Meee(val a: Int, val moo: Meee?)
 
 fun <T1, T2, T3, T4, T5, T6> Meee(a: Unapplier<T1, T2, T3, T4, T5, T6, Int> = ignore(),
-                                  moo: Unapplier<T1, T2, T3, T4, T5, T6, Meee?> = ignore()) = object : Unapplier<T1, T2, T3, T4, T5, T6, Meee>() {
-    override fun unapply(arg: Meee, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean =
-        a.unapply(arg.a, matcher) && moo.unapply(arg.moo, matcher)
-}
+                                  moo: Unapplier<T1, T2, T3, T4, T5, T6, Meee?> = ignore()) =
+    object : Unapplier<T1, T2, T3, T4, T5, T6, Meee>() {
+        override fun unapply(arg: Meee, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean =
+            a.unapply(arg.a, matcher) && moo.unapply(arg.moo, matcher)
+    }
 
 sealed class Expr
 data class Var(val name: String): Expr()
@@ -43,10 +44,18 @@ fun <T1, T2, T3, T4, T5, T6> Const(
 }
 
 fun simplifyStep(e: Expr): Expr = match(e) {
-    Plus(Const(_1()), Const(_2())) of { (l, r) -> Const(l + r) }
-    Plus(_1(), Const(const { 0L })) of { (it) -> it }
-    Plus(Const(const { 0L }), _1()) of { (it) -> it }
-    Plus(_1(), _2()) of { (l, r) -> Plus(simplify(l), simplify(r)) }
+    Plus(Const(_1()), Const(_2())) of { (l, r) ->
+        Const(l + r)
+    }
+    Plus(_1(), Const(const { 0L })) of { (it) ->
+        it
+    }
+    Plus(Const(const { 0L }), _1()) of { (it) ->
+        it
+    }
+    Plus(_1(), _2()) of { (l, r) ->
+        Plus(simplify(l), simplify(r))
+    }
 
     otherwise { e }
 }
@@ -68,9 +77,17 @@ fun main() {
 
     match((0..10).asSequence()) {
         sequence(_1<Int>(), rest = sequence(_2<Int>())) of { (a, b) -> a / b }
+        sequence<Int>() of { _ ->  }
 
         otherwise { 2 }
     }
 
+    match(listOf(1,2,3,4)) {
+        collection(const { 1 }, const { 2 }, rest = _1()) of { (it) ->
+            println(it.toList())
+        }
+
+        otherwise { }
+    }
 
 }
