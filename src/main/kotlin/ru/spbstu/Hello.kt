@@ -95,4 +95,13 @@ fun main() {
         otherwise { }
     }
 
+    val xx = match(mapOf(3 to "World", 2 to "Hello")) {
+        mapContaining(2 to _1<String>(), 3 to _2<String>()) of { (v2, v3) ->
+            "$v2 $v3"
+        }
+
+        otherwise { "" }
+    }
+    println(xx)
+
 }
