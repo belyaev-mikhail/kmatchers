@@ -3,35 +3,34 @@ package ru.spbstu.matchers
 import org.intellij.lang.annotations.Language
 import ru.spbstu.wheels.getEntry
 
+private inline fun <T1, T2, T3, T4, T5, T6, Arg> unapplyIterator(
+    iterator: Iterator<Arg>,
+    elements: Array<out Unapplier<T1, T2, T3, T4, T5, T6, Arg>>,
+    matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>
+): Boolean {
+    for (e in elements) {
+        if (!iterator.hasNext()) return false
+        if (!e.unapply(iterator.next(), matcher)) return false
+    }
+    return true
+}
+
 fun <T1, T2, T3, T4, T5, T6, Arg> sequence(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>,
     rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>>
-): Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = object : Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>>() {
-    override fun unapply(arg: Sequence<Arg>, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
-        val it = arg.iterator()
-        for (e in elements) {
-            if (!it.hasNext()) return false
-            if (!e.unapply(it.next(), matcher)) return false
-        }
-        return rest.unapply(it.asSequence(), matcher)
+): Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = unapplier { arg, matcher ->
+    arg.iterator().let { it ->
+        unapplyIterator(it, elements, matcher) && rest.unapply(it.asSequence(), matcher)
     }
 }
 
-fun <Arg> sequence(): NoResultUnapplier<Sequence<Arg>> = object : NoResultUnapplier<Sequence<Arg>>() {
-    override fun unapply(arg: Sequence<Arg>, matcher: NoResultBuilder): Boolean =
-        !arg.iterator().hasNext()
-}
+fun <Arg> sequence(): NoResultUnapplier<Sequence<Arg>> = unapplier { arg, _ -> !arg.iterator().hasNext() }
 
 fun <T1, T2, T3, T4, T5, T6, Arg> sequence(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>
-): Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = object : Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>>() {
-    override fun unapply(arg: Sequence<Arg>, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
-        val it = arg.iterator()
-        for (e in elements) {
-            if (!it.hasNext()) return false
-            if (!e.unapply(it.next(), matcher)) return false
-        }
-        return !it.hasNext()
+): Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = unapplier { arg, matcher ->
+    arg.iterator().let { it ->
+        unapplyIterator(it, elements, matcher) && !it.hasNext()
     }
 }
 
@@ -39,34 +38,19 @@ fun <T1, T2, T3, T4, T5, T6, Arg> collection(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>,
     size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = ignore(),
     rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = ignore()
-): Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>> = object : Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>>() {
-    override fun unapply(arg: Collection<Arg>, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
-        if (!size.unapply(arg.size, matcher)) return false
-
-        val it = arg.iterator()
-        for (e in elements) {
-            if (!it.hasNext()) return false
-            if (!e.unapply(it.next(), matcher)) return false
-        }
-        return rest.unapply(it.asSequence(), matcher)
-    }
+): Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>> = unapplier { arg, matcher ->
+    size.unapply(arg.size, matcher) &&
+            arg.iterator().let { it ->
+                unapplyIterator(it, elements, matcher) && rest.unapply(it.asSequence(), matcher)
+            }
 }
 
-fun <Arg> collection(): NoResultUnapplier<Collection<Arg>> = object : NoResultUnapplier<Collection<Arg>>() {
-    override fun unapply(arg: Collection<Arg>, matcher: NoResultBuilder): Boolean = arg.isEmpty()
-}
+fun <Arg> collection(): NoResultUnapplier<Collection<Arg>> = unapplier { arg, _ -> arg.isEmpty() }
 
 fun <T1, T2, T3, T4, T5, T6, Arg> collection(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>
-): Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>> = object : Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>>() {
-    override fun unapply(arg: Collection<Arg>, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
-        val it = arg.iterator()
-        for (e in elements) {
-            if (!it.hasNext()) return false
-            if (!e.unapply(it.next(), matcher)) return false
-        }
-        return !it.hasNext()
-    }
+): Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>> = unapplier { arg, matcher ->
+    arg.size == elements.size && unapplyIterator(arg.iterator(), elements, matcher)
 }
 
 fun <T1, T2, T3, T4, T5, T6, A, B> Pair(
