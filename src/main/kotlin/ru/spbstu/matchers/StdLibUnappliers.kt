@@ -1,6 +1,7 @@
 package ru.spbstu.matchers
 
-import ru.spbstu.wheels.getOption
+import org.intellij.lang.annotations.Language
+import ru.spbstu.wheels.getEntry
 
 fun <T1, T2, T3, T4, T5, T6, Arg> sequence(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>,
@@ -36,9 +37,12 @@ fun <T1, T2, T3, T4, T5, T6, Arg> sequence(
 
 fun <T1, T2, T3, T4, T5, T6, Arg> collection(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>,
-    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>>
+    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = ignore(),
+    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = ignore()
 ): Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>> = object : Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>>() {
     override fun unapply(arg: Collection<Arg>, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
+        if (!size.unapply(arg.size, matcher)) return false
+
         val it = arg.iterator()
         for (e in elements) {
             if (!it.hasNext()) return false
@@ -86,7 +90,33 @@ fun <T1, T2, T3, T4, T5, T6, K, V> mapContaining(
     vararg entries: Pair<K, Unapplier<T1, T2, T3, T4, T5, T6, V>>
 ): Unapplier<T1, T2, T3, T4, T5, T6, Map<K, V>> = unapplier { arg, matchResultBuilder ->
     entries.all { (k, m) ->
-        val value = arg.getOption(k)
-        value.isNotEmpty() && m.unapply(value.get(), matchResultBuilder)
+        val value = arg.getEntry(k)
+        value != null && m.unapply(value.value, matchResultBuilder)
     }
 }
+
+fun re(regex: Regex): NoResultUnapplier<CharSequence> = unapplier { arg, _ ->
+    regex.matches(arg)
+}
+
+fun re(@Language("RegExp") regex: String): NoResultUnapplier<CharSequence> = re(Regex(regex))
+
+fun <T1, T2, T3, T4, T5, T6> re(
+    regex: Regex,
+    vararg groups: Unapplier<T1, T2, T3, T4, T5, T6, CharSequence>
+): Unapplier<T1, T2, T3, T4, T5, T6, CharSequence> = unapplier { arg, matchResultBuilder ->
+    val mres = regex.matchEntire(arg) ?: return@unapplier false
+    val mgroups = mres.groups
+    if (groups.size + 1 != mgroups.size) return@unapplier false
+
+    for (i in groups.indices) {
+        val mgroup = mgroups[i + 1] ?: return@unapplier false
+        if (!groups[i].unapply(mgroup.value, matchResultBuilder)) return@unapplier false
+    }
+    true
+}
+
+fun <T1, T2, T3, T4, T5, T6> re(
+    @Language("RegExp") regex: String,
+    vararg groups: Unapplier<T1, T2, T3, T4, T5, T6, CharSequence>
+): Unapplier<T1, T2, T3, T4, T5, T6, CharSequence> = re(Regex(regex), *groups)

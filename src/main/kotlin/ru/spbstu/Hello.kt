@@ -104,4 +104,20 @@ fun main() {
     }
     println(xx)
 
+    match(2 to listOf("Hello")) {
+        Pair(first = const{ 3 } with _1<Int>(), second = ignore<List<String>>()) of {
+            println("first")
+        }
+
+        Pair(
+            _1<Int>(),
+            collection(_2<String>() with re("H(.*)lo", _3()))
+        ) of { (n, s, r) ->
+            println("s = $s; n = $n; r = $r")
+        }
+
+        otherwise { println("last") }
+    }
+
+
 }

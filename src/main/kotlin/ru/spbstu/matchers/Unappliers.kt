@@ -14,6 +14,28 @@ abstract class Unapplier<out T1, out T2, out T3, out T4, out T5, out T6, in Arg>
     ): Boolean
 }
 
+internal inline fun <T1, T2, T3, T4, T5, T6, Arg, Res> Unapplier<T1, T2, T3, T4, T5, T6, Arg>.comap(crossinline body: (Res) -> Arg): Unapplier<T1, T2, T3, T4, T5, T6, Res> =
+    unapplier { arg, matchResultBuilder ->
+        this@comap.unapply(body(arg), matchResultBuilder)
+    }
+
+internal inline fun <T1, T2, T3, T4, T5, T6, Arg> Unapplier<T1, T2, T3, T4, T5, T6, Arg>.filter(crossinline body: (Arg) -> Boolean): Unapplier<T1, T2, T3, T4, T5, T6, Arg> =
+    unapplier { arg, matchResultBuilder ->
+        if (body(arg)) unapply(arg, matchResultBuilder)
+        else false
+    }
+
+internal fun  <T1, T2, T3, T4, T5, T6, Arg> combine(vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>): Unapplier<T1, T2, T3, T4, T5, T6, Arg> =
+    unapplier { arg, matchResultBuilder -> elements.all { it.unapply(arg, matchResultBuilder) } }
+
+// same as comap(Option<Arg>::get).filter(Option<Arg>::isNotEmpty).comap(body), but inlined
+internal inline fun <T1, T2, T3, T4, T5, T6, Arg, Res> Unapplier<T1, T2, T3, T4, T5, T6, Arg>.comapNotEmpty(crossinline body: (Res) -> Option<Arg>): Unapplier<T1, T2, T3, T4, T5, T6, Res> =
+    unapplier { arg, matchResultBuilder ->
+        val opt = body(arg)
+        if (opt.isEmpty()) return@unapplier false
+        unapply(opt.get(), matchResultBuilder)
+    }
+
 typealias NoResultBuilder = MatchResultBuilder<Nothing, Nothing, Nothing, Nothing, Nothing, Nothing>
 typealias NoResultUnapplier<Arg> = Unapplier<Nothing, Nothing, Nothing, Nothing, Nothing, Nothing, Arg>
 
@@ -86,6 +108,9 @@ inline fun <T1, T2, T3, T4, T5, T6, Arg> unapplier(
 inline fun <Arg> guard(crossinline body: (Arg) -> Boolean): NoResultUnapplier<Arg> =
     unapplier { arg, _ -> body(arg) }
 
+inline fun <T1, T2, T3, T4, T5, T6, Arg> check(crossinline body: (MatchResult<T1, T2, T3, T4, T5, T6>) -> Boolean): Unapplier<T1, T2, T3, T4, T5, T6, Arg> =
+    unapplier { _, interm -> body(interm) }
+
 inline fun <Arg> const(crossinline body: () -> Arg): NoResultUnapplier<Arg> =
     unapplier { arg, _ -> arg == body() }
 
@@ -97,4 +122,9 @@ fun <T1, T2, T3, T4, T5, T6, Arg> notNull(
         inner.unapply(arg, matcher)
     }
 
-
+infix fun <T1, T2, T3, T4, T5, T6, Arg> Unapplier<T1, T2, T3, T4, T5, T6, Arg>.with(
+    that: Unapplier<T1, T2, T3, T4, T5, T6, Arg>
+): Unapplier<T1, T2, T3, T4, T5, T6, Arg> =
+    unapplier { arg, matcher ->
+        this@with.unapply(arg, matcher) && that.unapply(arg, matcher)
+    }

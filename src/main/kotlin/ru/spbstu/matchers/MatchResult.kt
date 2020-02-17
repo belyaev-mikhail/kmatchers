@@ -22,14 +22,19 @@ class MatchResultBuilder<out T1, out T2, out T3, out T4, out T5, out T6>(
 ) : MatchResult<T1, T2, T3, T4, T5, T6>() {
     override operator fun component1(): T1 =
         v1.getOrElse { throw IllegalArgumentException("Matching component 1 did not match anything") }
+
     override operator fun component2(): T2 =
         v2.getOrElse { throw IllegalArgumentException("Matching component 2 did not match anything") }
+
     override operator fun component3(): T3 =
         v3.getOrElse { throw IllegalArgumentException("Matching component 3 did not match anything") }
+
     override operator fun component4(): T4 =
         v4.getOrElse { throw IllegalArgumentException("Matching component 4 did not match anything") }
+
     override operator fun component5(): T5 =
         v5.getOrElse { throw IllegalArgumentException("Matching component 5 did not match anything") }
+
     override operator fun component6(): T6 =
         v6.getOrElse { throw IllegalArgumentException("Matching component 6 did not match anything") }
 }
