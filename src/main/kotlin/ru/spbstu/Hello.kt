@@ -5,11 +5,8 @@ import ru.spbstu.matchers.*
 data class Meee(val a: Int, val moo: Meee?)
 
 fun <T1, T2, T3, T4, T5, T6> Meee(a: Unapplier<T1, T2, T3, T4, T5, T6, Int> = ignore(),
-                                  moo: Unapplier<T1, T2, T3, T4, T5, T6, Meee?> = ignore()) =
-    object : Unapplier<T1, T2, T3, T4, T5, T6, Meee>() {
-        override fun unapply(arg: Meee, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean =
-            a.unapply(arg.a, matcher) && moo.unapply(arg.moo, matcher)
-    }
+                                  moo: Unapplier<T1, T2, T3, T4, T5, T6, Meee?> = ignore()): Unapplier<T1, T2, T3, T4, T5, T6, Meee> =
+    unapplier { arg, matcher -> a.unapply(arg.a, matcher) && moo.unapply(arg.moo, matcher) }
 
 sealed class Expr
 data class Var(val name: String): Expr()
@@ -20,16 +17,14 @@ operator fun Expr.plus(that: Expr): Expr = Plus(this, that)
 
 fun <T1, T2, T3, T4, T5, T6> Var(
     name: Unapplier<T1, T2, T3, T4, T5, T6, String> = ignore()
-) = object : Unapplier<T1, T2, T3, T4, T5, T6, Expr>() {
-    override fun unapply(arg: Expr, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean =
+): Unapplier<T1, T2, T3, T4, T5, T6, Expr> = unapplier { arg, matcher ->
         arg is Var && name.unapply(arg.name, matcher)
 }
 
 fun <T1, T2, T3, T4, T5, T6> Plus(
     lhv: Unapplier<T1, T2, T3, T4, T5, T6, Expr> = ignore(),
     rhv: Unapplier<T1, T2, T3, T4, T5, T6, Expr> = ignore()
-) = object : Unapplier<T1, T2, T3, T4, T5, T6, Expr>() {
-    override fun unapply(arg: Expr, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean =
+): Unapplier<T1, T2, T3, T4, T5, T6, Expr> = unapplier { arg, matcher ->
         arg is Plus && lhv.unapply(arg.lhv, matcher) && rhv.unapply(arg.rhv, matcher)
 }
 
@@ -38,22 +33,21 @@ operator fun <T1, T2, T3, T4, T5, T6> Unapplier<T1, T2, T3, T4, T5, T6, Expr>.pl
 
 fun <T1, T2, T3, T4, T5, T6> Const(
     value: Unapplier<T1, T2, T3, T4, T5, T6, Long> = ignore()
-) = object : Unapplier<T1, T2, T3, T4, T5, T6, Expr>() {
-    override fun unapply(arg: Expr, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean =
-        arg is Const && value.unapply(arg.value, matcher)
+): Unapplier<T1, T2, T3, T4, T5, T6, Expr> = unapplier { arg, matcher ->
+    arg is Const && value.unapply(arg.value, matcher)
 }
 
 fun simplifyStep(e: Expr): Expr = match(e) {
-    Plus(Const(_1()), Const(_2())) of { (l, r) ->
+    (Const(_1()) + Const(_2())) of { (l, r) ->
         Const(l + r)
     }
-    Plus(_1(), Const(const { 0L })) of { (it) ->
-        it
+    (_1<Expr>() + Const(const { 0L })) of { (v) ->
+        v
     }
-    Plus(Const(const { 0L }), _1()) of { (it) ->
-        it
+    (Const(const { 0L }) + _1<Expr>()) of { (v) ->
+        v
     }
-    Plus(_1(), _2()) of { (l, r) ->
+    (_1<Expr>() + _2<Expr>()) of { (l, r) ->
         Plus(simplify(l), simplify(r))
     }
 

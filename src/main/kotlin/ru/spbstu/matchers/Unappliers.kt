@@ -100,7 +100,7 @@ class Arg6<T> : Unapplier<Nothing, Nothing, Nothing, Nothing, Nothing, T, T>() {
 fun <T> _6(): Unapplier<Nothing, Nothing, Nothing, Nothing, Nothing, T, T> = Arg6()
 
 inline fun <T1, T2, T3, T4, T5, T6, Arg> unapplier(
-    crossinline body: (Arg, MatchResultBuilder<T1, T2, T3, T4, T5, T6>) -> Boolean
+    crossinline body: (arg: Arg, matchResultBuilder: MatchResultBuilder<T1, T2, T3, T4, T5, T6>) -> Boolean
 ): Unapplier<T1, T2, T3, T4, T5, T6, Arg> = object : Unapplier<T1, T2, T3, T4, T5, T6, Arg>() {
     override fun unapply(arg: Arg, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean = body(arg, matcher)
 }
