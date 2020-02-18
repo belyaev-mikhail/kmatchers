@@ -37,4 +37,17 @@ class MatchResultBuilder<out T1, out T2, out T3, out T4, out T5, out T6>(
 
     override operator fun component6(): T6 =
         v6.getOrElse { throw IllegalArgumentException("Matching component 6 did not match anything") }
+
+    fun copy(): MatchResultBuilder<T1, T2, T3, T4, T5, T6> = MatchResultBuilder(v1, v2, v3, v4, v5, v6)
+    fun assign(that: MatchResultBuilder<
+            @UnsafeVariance T1, @UnsafeVariance T2,
+            @UnsafeVariance T3, @UnsafeVariance T4,
+            @UnsafeVariance T5, @UnsafeVariance T6>) {
+        v1 = that.v1
+        v2 = that.v2
+        v3 = that.v3
+        v4 = that.v4
+        v5 = that.v5
+        v6 = that.v6
+    }
 }

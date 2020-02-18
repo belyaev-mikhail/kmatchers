@@ -7,8 +7,8 @@ package ru.spbstu.matchers
 
 fun <T1, T2, T3, T4, T5, T6, Arg> array(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>,
-    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = ignore(),
-    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = ignore()
+    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = any(),
+    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = any()
 ): Unapplier<T1, T2, T3, T4, T5, T6, Array<Arg>> = object : Unapplier<T1, T2, T3, T4, T5, T6, Array<Arg>>() {
     override fun unapply(arg: Array<Arg>, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
         if (!size.unapply(arg.size, matcher)) return false
@@ -41,8 +41,8 @@ fun <T1, T2, T3, T4, T5, T6, Arg> array(
 
 fun <T1, T2, T3, T4, T5, T6> intArray(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Int>,
-    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = ignore(),
-    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Int>> = ignore()
+    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = any(),
+    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Int>> = any()
 ): Unapplier<T1, T2, T3, T4, T5, T6, IntArray> = object : Unapplier<T1, T2, T3, T4, T5, T6, IntArray>() {
     override fun unapply(arg: IntArray, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
         if (!size.unapply(arg.size, matcher)) return false
@@ -75,8 +75,8 @@ fun <T1, T2, T3, T4, T5, T6> intArray(
 
 fun <T1, T2, T3, T4, T5, T6> charArray(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Char>,
-    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = ignore(),
-    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Char>> = ignore()
+    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = any(),
+    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Char>> = any()
 ): Unapplier<T1, T2, T3, T4, T5, T6, CharArray> = object : Unapplier<T1, T2, T3, T4, T5, T6, CharArray>() {
     override fun unapply(arg: CharArray, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
         if (!size.unapply(arg.size, matcher)) return false
@@ -109,8 +109,8 @@ fun <T1, T2, T3, T4, T5, T6> charArray(
 
 fun <T1, T2, T3, T4, T5, T6> shortArray(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Short>,
-    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = ignore(),
-    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Short>> = ignore()
+    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = any(),
+    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Short>> = any()
 ): Unapplier<T1, T2, T3, T4, T5, T6, ShortArray> = object : Unapplier<T1, T2, T3, T4, T5, T6, ShortArray>() {
     override fun unapply(arg: ShortArray, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
         if (!size.unapply(arg.size, matcher)) return false
@@ -143,8 +143,8 @@ fun <T1, T2, T3, T4, T5, T6> shortArray(
 
 fun <T1, T2, T3, T4, T5, T6> byteArray(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Byte>,
-    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = ignore(),
-    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Byte>> = ignore()
+    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = any(),
+    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Byte>> = any()
 ): Unapplier<T1, T2, T3, T4, T5, T6, ByteArray> = object : Unapplier<T1, T2, T3, T4, T5, T6, ByteArray>() {
     override fun unapply(arg: ByteArray, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
         if (!size.unapply(arg.size, matcher)) return false
@@ -177,8 +177,8 @@ fun <T1, T2, T3, T4, T5, T6> byteArray(
 
 fun <T1, T2, T3, T4, T5, T6> longArray(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Long>,
-    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = ignore(),
-    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Long>> = ignore()
+    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = any(),
+    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Long>> = any()
 ): Unapplier<T1, T2, T3, T4, T5, T6, LongArray> = object : Unapplier<T1, T2, T3, T4, T5, T6, LongArray>() {
     override fun unapply(arg: LongArray, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean {
         if (!size.unapply(arg.size, matcher)) return false

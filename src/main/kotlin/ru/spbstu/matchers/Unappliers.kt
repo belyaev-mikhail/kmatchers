@@ -43,7 +43,7 @@ class Ignore<T> : NoResultUnapplier<T>() {
     override fun unapply(arg: T, matcher: NoResultBuilder): Boolean = true
 }
 
-fun <T> ignore(): NoResultUnapplier<T> = Ignore()
+fun <T> any(): NoResultUnapplier<T> = Ignore()
 
 class Arg1<T> : Unapplier<T, Nothing, Nothing, Nothing, Nothing, Nothing, T>() {
     override fun unapply(arg: T, matcher: MatchResultBuilder<T, Nothing, Nothing, Nothing, Nothing, Nothing>): Boolean {
@@ -105,11 +105,8 @@ inline fun <T1, T2, T3, T4, T5, T6, Arg> unapplier(
     override fun unapply(arg: Arg, matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>): Boolean = body(arg, matcher)
 }
 
-inline fun <Arg> guard(crossinline body: (Arg) -> Boolean): NoResultUnapplier<Arg> =
+inline fun <Arg> filter(crossinline body: (Arg) -> Boolean): NoResultUnapplier<Arg> =
     unapplier { arg, _ -> body(arg) }
-
-inline fun <T1, T2, T3, T4, T5, T6, Arg> check(crossinline body: (MatchResult<T1, T2, T3, T4, T5, T6>) -> Boolean): Unapplier<T1, T2, T3, T4, T5, T6, Arg> =
-    unapplier { _, interm -> body(interm) }
 
 inline fun <Arg> const(crossinline body: () -> Arg): NoResultUnapplier<Arg> =
     unapplier { arg, _ -> arg == body() }
@@ -127,4 +124,46 @@ infix fun <T1, T2, T3, T4, T5, T6, Arg> Unapplier<T1, T2, T3, T4, T5, T6, Arg>.w
 ): Unapplier<T1, T2, T3, T4, T5, T6, Arg> =
     unapplier { arg, matcher ->
         this@with.unapply(arg, matcher) && that.unapply(arg, matcher)
+    }
+
+class HasType<T>
+fun <T> ofType() = HasType<T>()
+
+inline infix fun <T1, T2, T3, T4, T5, T6, reified Arg> HasType<Arg>.with(
+    that: Unapplier<T1, T2, T3, T4, T5, T6, Arg>
+): Unapplier<T1, T2, T3, T4, T5, T6, Any?> =
+    unapplier { arg, matcher ->
+        arg is Arg && that.unapply(arg, matcher)
+    }
+
+interface Case<T1, T2, T3, T4, T5, T6, in Arg> {
+    fun unapply(arg: Arg): MatchResult<T1, T2, T3, T4, T5, T6>?
+}
+
+fun <T1, T2, T3, T4, T5, T6, Arg> case(unapplier: Unapplier<T1, T2, T3, T4, T5, T6, Arg>): Case<T1, T2, T3, T4, T5, T6, Arg> =
+    object : Case<T1, T2, T3, T4, T5, T6, Arg> {
+        override fun unapply(arg: Arg): MatchResult<T1, T2, T3, T4, T5, T6>? {
+            val builder = MatchResultBuilder<T1, T2, T3, T4, T5, T6>()
+            return when {
+                unapplier.unapply(arg, builder) -> builder
+                else -> null
+            }
+        }
+    }
+
+infix fun <T1, T2, T3, T4, T5, T6, Arg> Case<T1, T2, T3, T4, T5, T6, Arg>.or(
+    that: Case<T1, T2, T3, T4, T5, T6, Arg>
+): Case<T1, T2, T3, T4, T5, T6, Arg> =
+    object : Case<T1, T2, T3, T4, T5, T6, Arg> {
+        override fun unapply(arg: Arg): MatchResult<T1, T2, T3, T4, T5, T6>? =
+            this@or.unapply(arg) ?: that.unapply(arg)
+    }
+
+inline infix fun <T1, T2, T3, T4, T5, T6, Arg> Case<T1, T2, T3, T4, T5, T6, Arg>.guardedBy(crossinline body: (MatchResult<T1, T2, T3, T4, T5, T6>) -> Boolean): Case<T1, T2, T3, T4, T5, T6, Arg> =
+    object : Case<T1, T2, T3, T4, T5, T6, Arg> {
+        override fun unapply(arg: Arg): MatchResult<T1, T2, T3, T4, T5, T6>? =
+            when(val result = this@guardedBy.unapply(arg)) {
+                null -> null
+                else -> if(body(result)) result else null
+            }
     }

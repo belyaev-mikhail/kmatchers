@@ -1,6 +1,5 @@
 package ru.spbstu.matchers
 
-import ru.spbstu.Meee
 import ru.spbstu.wheels.Option
 import ru.spbstu.wheels.getOrElse
 import kotlin.experimental.ExperimentalTypeInference
@@ -28,29 +27,48 @@ inline fun <T1, T2, T3, T4, T5, T6, Arg, R>
 }
 
 @KMatchersDSL
-class MatchScope<T, R>(val value: T, var result: Option<R>) {
+class MatchScope<T, R>(val value: T, @PublishedApi internal val dryRun: Boolean = false) {
     @KMatchersDSL
     object FakeReceiver
 
-    inline fun <T1, T2, T3, T4, T5, T6> case(
-        self: Unapplier<T1, T2, T3, T4, T5, T6, T>,
-        body: FakeReceiver.(MatchResult<T1, T2, T3, T4, T5, T6>) -> R
-    ) {
-        if (result.isEmpty()) result = self.match(value) { FakeReceiver.body(it) }
+    @PublishedApi
+    internal var result: Option<R> = Option.empty()
+    @PublishedApi
+    internal var applicable: Boolean = false
+
+    inline infix fun <T1, T2, T3, T4, T5, T6> Case<T1, T2, T3, T4, T5, T6, T>.of(body: FakeReceiver.(MatchResult<T1, T2, T3, T4, T5, T6>) -> R) {
+        if (result.isEmpty() || !applicable) {
+            when(val matchingResult = unapply(value)) {
+                null -> {}
+                else -> {
+                    applicable = true
+                    if(!dryRun) result = Option.just(FakeReceiver.body(matchingResult))
+                }
+            }
+        }
     }
 
-    inline infix fun <T1, T2, T3, T4, T5, T6> Unapplier<T1, T2, T3, T4, T5, T6, T>.of(body: FakeReceiver.(MatchResult<T1, T2, T3, T4, T5, T6>) -> R) {
-        if (result.isEmpty()) result = match(value) { FakeReceiver.body(it) }
-    }
-
-    inline fun otherwise(body: () -> R) {
-        if (result.isEmpty()) result = Option.just(body())
+    inline fun otherwise(body: FakeReceiver.() -> R) {
+        if (result.isEmpty() || !applicable) {
+            applicable = true
+            if(!dryRun) result = Option.just(FakeReceiver.body())
+        }
     }
 }
 
 @UseExperimental(ExperimentalTypeInference::class)
 inline fun <T, R> match(value: T, @BuilderInference body: MatchScope<T, R>.() -> Unit): R = run {
-    val scope = MatchScope(value, Option.empty<R>())
+    val scope = MatchScope<T, R>(value)
     scope.body()
     scope.result.getOrElse { throw IllegalStateException("Matching failed") }
+}
+
+class PartialFunction<in T, out R> (val body: MatchScope<@UnsafeVariance T, @UnsafeVariance R>.() -> Unit): (T) -> R {
+    override fun invoke(arg: T): R = match(arg, body)
+
+    fun isApplicableTo(arg: T): Boolean {
+        val scope = MatchScope<T, R>(arg, dryRun = true)
+        scope.body()
+        return scope.applicable
+    }
 }

@@ -55,6 +55,12 @@
                     <execution>
                         <id>compile</id>
                         <phase>compile</phase>
+                        <configuration>
+                            <args>
+                                <arg>-Xnew-inference</arg>
+                                <arg>-Xuse-experimental=kotlin.Experimental</arg>
+                            </args>
+                        </configuration>
                         <goals>
                             <goal>compile</goal>
                         </goals>
@@ -62,6 +68,12 @@
                     <execution>
                         <id>test-compile</id>
                         <phase>test-compile</phase>
+                        <configuration>
+                            <args>
+                                <arg>-Xnew-inference</arg>
+                                <arg>-Xuse-experimental=kotlin.Experimental</arg>
+                            </args>
+                        </configuration>
                         <goals>
                             <goal>test-compile</goal>
                         </goals>

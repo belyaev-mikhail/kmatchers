@@ -3,7 +3,7 @@ package ru.spbstu.matchers
 import org.intellij.lang.annotations.Language
 import ru.spbstu.wheels.getEntry
 
-private inline fun <T1, T2, T3, T4, T5, T6, Arg> unapplyIterator(
+private fun <T1, T2, T3, T4, T5, T6, Arg> unapplyIterator(
     iterator: Iterator<Arg>,
     elements: Array<out Unapplier<T1, T2, T3, T4, T5, T6, Arg>>,
     matcher: MatchResultBuilder<T1, T2, T3, T4, T5, T6>
@@ -36,8 +36,8 @@ fun <T1, T2, T3, T4, T5, T6, Arg> sequence(
 
 fun <T1, T2, T3, T4, T5, T6, Arg> collection(
     vararg elements: Unapplier<T1, T2, T3, T4, T5, T6, Arg>,
-    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = ignore(),
-    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = ignore()
+    size: Unapplier<T1, T2, T3, T4, T5, T6, Int> = any(),
+    rest: Unapplier<T1, T2, T3, T4, T5, T6, Sequence<Arg>> = any()
 ): Unapplier<T1, T2, T3, T4, T5, T6, Collection<Arg>> = unapplier { arg, matcher ->
     size.unapply(arg.size, matcher) &&
             arg.iterator().let { it ->
@@ -54,16 +54,16 @@ fun <T1, T2, T3, T4, T5, T6, Arg> collection(
 }
 
 fun <T1, T2, T3, T4, T5, T6, A, B> Pair(
-    first: Unapplier<T1, T2, T3, T4, T5, T6, A> = ignore(),
-    second: Unapplier<T1, T2, T3, T4, T5, T6, B> = ignore()
+    first: Unapplier<T1, T2, T3, T4, T5, T6, A> = any(),
+    second: Unapplier<T1, T2, T3, T4, T5, T6, B> = any()
 ): Unapplier<T1, T2, T3, T4, T5, T6, Pair<A, B>> = unapplier { arg, matchResultBuilder ->
     first.unapply(arg.first, matchResultBuilder) && second.unapply(arg.second, matchResultBuilder)
 }
 
 fun <T1, T2, T3, T4, T5, T6, A, B, C> Triple(
-    first: Unapplier<T1, T2, T3, T4, T5, T6, A> = ignore(),
-    second: Unapplier<T1, T2, T3, T4, T5, T6, B> = ignore(),
-    third: Unapplier<T1, T2, T3, T4, T5, T6, C> = ignore()
+    first: Unapplier<T1, T2, T3, T4, T5, T6, A> = any(),
+    second: Unapplier<T1, T2, T3, T4, T5, T6, B> = any(),
+    third: Unapplier<T1, T2, T3, T4, T5, T6, C> = any()
 ): Unapplier<T1, T2, T3, T4, T5, T6, Triple<A, B, C>> = unapplier { arg, matchResultBuilder ->
     first.unapply(arg.first, matchResultBuilder)
             && second.unapply(arg.second, matchResultBuilder)
