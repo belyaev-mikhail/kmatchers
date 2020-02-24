@@ -132,20 +132,6 @@ fun main() {
     }
     println(xx)
 
-    match(2 to listOf("Hello")) {
-        case(Pair(first = const{ 3 } with _1(), second = any<List<String>>())) of {
-            println("first")
-        }
-
-        case(Pair(
-            _1<Int>(),
-            collection(_2<String>() with re("H(.*)lo", _3()))
-        )) guardedBy { (n, _, _) -> n > 0 } of { (n, s, r) ->
-            println("s = $s; n = $n; r = $r")
-        }
-
-        otherwise { println("last") }
-    }
 
     match(Any()) {
         case(ofType<List<Int>>() with _1()) of {

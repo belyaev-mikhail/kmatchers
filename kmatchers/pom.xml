@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <parent>
+        <artifactId>kmatchers-parent</artifactId>
+        <groupId>ru.spbstu</groupId>
+        <version>0.0.0.1-SNAPSHOT</version>
+    </parent>
 
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ru.spbstu</groupId>
-    <artifactId>kmatchers-parent</artifactId>
-    <version>0.0.0.1-SNAPSHOT</version>
-    <modules>
-        <module>kmatchers-processor</module>
-        <module>kmatchers</module>
-        <module>kmatchers-example</module>
-    </modules>
+    <artifactId>kmatchers</artifactId>
     <packaging>pom</packaging>
 
-    <name>kmatchers-parent</name>
+    <name>kmatchers</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -91,7 +89,7 @@
     <repositories>
         <repository>
             <id>bintray-vorpal-research-kotlin-maven</id>
-            <url>http://dl.bintray.com/vorpal-research/kotlin-maven</url>
+            <url>https://dl.bintray.com/vorpal-research/kotlin-maven</url>
         </repository>
     </repositories>
 
