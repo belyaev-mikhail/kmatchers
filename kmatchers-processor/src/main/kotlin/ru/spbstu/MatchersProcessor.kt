@@ -8,6 +8,7 @@ import com.squareup.kotlinpoet.metadata.KotlinPoetMetadataPreview
 import com.squareup.kotlinpoet.metadata.specs.toTypeSpec
 import ru.spbstu.matchers.Unapplier
 import ru.spbstu.matchers.annotations.GenerateMatchers
+import ru.spbstu.matchers.annotations.GenerateMultipleMatchers
 import ru.spbstu.matchers.array
 import ru.spbstu.wheels.firstInstance
 import javax.annotation.processing.*
@@ -15,8 +16,8 @@ import javax.lang.model.SourceVersion
 import javax.lang.model.element.TypeElement
 import javax.lang.model.type.MirroredTypeException
 
-private fun remap(type: TypeName, mapping: Map<TypeVariableName, TypeName>): TypeName = when(type) {
-    is TypeVariableName -> if(type in mapping) mapping[type]!! else type
+private fun remap(type: TypeName, mapping: Map<TypeVariableName, TypeName>): TypeName = when (type) {
+    is TypeVariableName -> if (type in mapping) mapping[type]!! else type
     is ClassName, is Dynamic, is WildcardTypeName -> type
     is ParameterizedTypeName ->
         type.rawType.parameterizedBy(type.typeArguments.map { remap(it, mapping) })
@@ -26,11 +27,19 @@ private fun remap(type: TypeName, mapping: Map<TypeVariableName, TypeName>): Typ
             receiver = type.receiver?.let { remap(it, mapping) },
             parameters = type.parameters.map { it.toBuilder(type = remap(it.type, mapping)).build() },
             returnType = type.returnType?.let { remap(it, mapping) }
-        ).copy(nullable = type.isNullable, annotations = type.annotations, suspending = type.isSuspending, tags = type.tags)
+        ).copy(
+            nullable = type.isNullable,
+            annotations = type.annotations,
+            suspending = type.isSuspending,
+            tags = type.tags
+        )
 }
 
 @SupportedSourceVersion(SourceVersion.RELEASE_8)
-@SupportedAnnotationTypes("ru.spbstu.matchers.annotations.GenerateMatchers")
+@SupportedAnnotationTypes(
+    "ru.spbstu.matchers.annotations.GenerateMatchers",
+    "ru.spbstu.matchers.annotations.GenerateMultipleMatchers"
+)
 @SupportedOptions(MatchersProcessor.KAPT_KOTLIN_GENERATED_OPTION_NAME)
 @AutoService(Processor::class)
 class MatchersProcessor : AbstractProcessor() {
@@ -42,15 +51,14 @@ class MatchersProcessor : AbstractProcessor() {
 
     @UseExperimental(KotlinPoetMetadataPreview::class)
     override fun process(annotations: MutableSet<out TypeElement>?, roundEnv: RoundEnvironment): Boolean {
-        val annotatedElements = roundEnv.getElementsAnnotatedWith(GenerateMatchers::class.java)
+        val annotatedElements = roundEnv.getElementsAnnotatedWith(GenerateMatchers::class.java) +
+                roundEnv.getElementsAnnotatedWith(GenerateMultipleMatchers::class.java)
         if (annotatedElements.isEmpty()) return false
         val env = this.processingEnv
 
         Thread.currentThread().contextClassLoader = javaClass.classLoader
 
-        val kotlinElements =
-            roundEnv.getElementsAnnotatedWith(processingEnv.elementUtils.getTypeElement("kotlin.Metadata"))
-                .filter { it in annotatedElements }
+        val kotlinElements = annotatedElements.filter { it.getAnnotation(Metadata::class.java) !== null }
 
         val inspector = ElementsClassInspector.create(env.elementUtils, env.typeUtils)
         val classMetadata = kotlinElements.mapNotNull {
@@ -58,73 +66,95 @@ class MatchersProcessor : AbstractProcessor() {
             elem.toTypeSpec(inspector).toBuilder().apply { tags[TypeElement::class] = elem }.build()
         }
 
-        val genFuncs = classMetadata.map { klass ->
+        val genFuncs = classMetadata.flatMap { klass ->
             val poet = klass
             val origin = klass.tag(TypeElement::class)!!
-            val anno = origin.getAnnotation(GenerateMatchers::class.java)
+            val annos = origin.getAnnotationsByType(GenerateMatchers::class.java) +
+                    origin.getAnnotation(GenerateMultipleMatchers::class.java)?.children.orEmpty()
             val props = poet.propertySpecs.filter {
                 KModifier.PRIVATE !in it.modifiers && KModifier.PROTECTED !in it.modifiers
             }
             val kname = origin.asClassName()
-            println(anno)
-            val `package` = anno.packageName.ifBlank { kname.packageName }
+            annos.map { anno ->
+                val `package` = anno.packageName.ifBlank { kname.packageName }
+                val fname = anno.functionName.ifBlank { poet.name }
+                    ?: throw IllegalArgumentException("No name defined for class $origin")
+                val fmodifiers = anno.functionModifiers
+                val generateReceiver = "infix" in fmodifiers || "operator" in fmodifiers
+                val generateDefaults = "infix" !in fmodifiers
 
-            val unapplier = Unapplier::class.asClassName()
-            val escapedTyVars = poet.typeVariables.map {
-                TypeVariableName("Re" + it.name, bounds = it.bounds)
-            }
-            val tyVarMapping = poet.typeVariables.zip(escapedTyVars).toMap()
-            val unapplierTyVars = (1..6).map {
-                TypeVariableName("T$it")
-            }
-            val parameterizedKName = when {
-                escapedTyVars.isEmpty() -> kname
-                else -> kname.parameterizedBy(escapedTyVars)
-            }
-            val unappliedType = try { anno.baseClass.asTypeName() } catch(ex: MirroredTypeException) {
-                ex.typeMirror.asTypeName()
-            }.takeUnless { it == Nothing::class.asTypeName()  } ?: parameterizedKName
-
-            fun unapplierType(parameter: TypeName) =
-                unapplier.parameterizedBy(unapplierTyVars + parameter)
-
-            FunSpec
-                .builder(poet.name!!)
-                .apply { tags[PackageName::class] = PackageName(`package`) }
-                .addTypeVariables(unapplierTyVars)
-                .addTypeVariables(escapedTyVars)
-                .apply {
-                    for (prop in props) {
-                        val param = ParameterSpec
-                            .builder(
-                                prop.name,
-                                unapplierType(remap(prop.type, tyVarMapping)),
-                                prop.modifiers.filter { it == KModifier.VARARG }
-                            )
-                            .defaultValue("%M()", MemberName("ru.spbstu.matchers", "any"))
-                            .build()
-                        addParameter(param)
-                    }
+                val unapplier = Unapplier::class.asClassName()
+                val escapedTyVars = poet.typeVariables.map {
+                    TypeVariableName("Re" + it.name, bounds = it.bounds)
                 }
-                .returns(unapplierType(unappliedType))
-                .addCode(CodeBlock
-                    .builder()
-                    .beginControlFlow(
-                        "return %M·{·arg, matchResultBuilder·-> ",
-                        MemberName("ru.spbstu.matchers", "unapplier")
-                    )
+                val tyVarMapping = poet.typeVariables.zip(escapedTyVars).toMap()
+                val unapplierTyVars = (1..6).map {
+                    TypeVariableName("T$it")
+                }
+                val parameterizedKName = when {
+                    escapedTyVars.isEmpty() -> kname
+                    else -> kname.parameterizedBy(escapedTyVars)
+                }
+                val unappliedType = try {
+                    anno.baseClass.asTypeName()
+                } catch (ex: MirroredTypeException) {
+                    ex.typeMirror.asTypeName()
+                }.takeUnless { it == Nothing::class.asTypeName() } ?: parameterizedKName
+
+                fun unapplierType(parameter: TypeName) =
+                    unapplier.parameterizedBy(unapplierTyVars + parameter)
+
+                FunSpec
+                    .builder(fname)
+                    .addModifiers(fmodifiers.map { KModifier.valueOf(it.toUpperCase()) })
+                    .apply { tags[PackageName::class] = PackageName(`package`) }
+                    .addTypeVariables(unapplierTyVars)
+                    .addTypeVariables(escapedTyVars)
                     .apply {
-                        val classCheck = CodeBlock.of("arg·is·%T", parameterizedKName)
-                        props.map {
-                            CodeBlock.of("%1N.unapply(arg.%1N,·matchResultBuilder)", it)
+                        val propsIt = props.iterator()
+                        if(generateReceiver && propsIt.hasNext()) {
+                            receiver(unapplierType(remap(propsIt.next().type, tyVarMapping)))
                         }
-                            .joinToCode(" &&·")
-                            .let { addStatement("%L &&·%L", classCheck, it) }
+                        for (prop in propsIt) {
+                            val param = ParameterSpec
+                                .builder(
+                                    prop.name,
+                                    unapplierType(remap(prop.type, tyVarMapping)),
+                                    prop.modifiers.filter { it == KModifier.VARARG }
+                                )
+                                .apply {
+                                    if(generateDefaults && KModifier.VARARG !in prop.modifiers)
+                                        defaultValue("%M()", MemberName("ru.spbstu.matchers", "any"))
+                                }
+                                .build()
+                            addParameter(param)
+                        }
                     }
-                    .endControlFlow()
+                    .returns(unapplierType(unappliedType))
+                    .addCode(CodeBlock
+                        .builder()
+                        .beginControlFlow(
+                            "return %M·{·arg, matchResultBuilder·-> ",
+                            MemberName("ru.spbstu.matchers", "unapplier")
+                        )
+                        .apply {
+                            val propsIt = props.iterator()
+                            val builder = mutableListOf<CodeBlock>()
+
+                            builder += CodeBlock.of("arg·is·%T", parameterizedKName)
+                            if(generateReceiver && propsIt.hasNext()) {
+                                builder += CodeBlock.of("unapply(arg.%N,·matchResultBuilder)", propsIt.next())
+                            }
+                            for(prop in propsIt) {
+                                builder += CodeBlock.of("%1N.unapply(arg.%1N,·matchResultBuilder)", prop)
+                            }
+                            addStatement("%L", builder.joinToCode(" &&·"))
+                        }
+                        .endControlFlow()
+                        .build()
+                    )
                     .build()
-                )
-                .build()
+            }
         }
 
         genFuncs.groupBy { it.tag(PackageName::class)!! }.map { (p, funcs) ->

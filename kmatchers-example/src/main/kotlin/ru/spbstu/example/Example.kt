@@ -2,8 +2,12 @@ package ru.spbstu.example
 
 import ru.spbstu.matchers.*
 import ru.spbstu.matchers.annotations.GenerateMatchers
+import ru.spbstu.matchers.annotations.GenerateMultipleMatchers
 
-@GenerateMatchers
+@GenerateMultipleMatchers(
+    GenerateMatchers(),
+    GenerateMatchers(functionName = "toto", functionModifiers = ["infix"])
+)
 data class MyPair<A, B>(val a: A, val b: B)
 
 sealed class Base
