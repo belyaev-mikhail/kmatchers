@@ -11,6 +11,7 @@ import ru.spbstu.matchers.annotations.GenerateMatchers
 import ru.spbstu.matchers.annotations.GenerateMultipleMatchers
 import ru.spbstu.matchers.array
 import ru.spbstu.wheels.firstInstance
+import ru.spbstu.wheels.tryEx
 import javax.annotation.processing.*
 import javax.lang.model.SourceVersion
 import javax.lang.model.element.TypeElement
@@ -63,7 +64,7 @@ class MatchersProcessor : AbstractProcessor() {
         val inspector = ElementsClassInspector.create(env.elementUtils, env.typeUtils)
         val classMetadata = kotlinElements.mapNotNull {
             val elem = it as? TypeElement ?: return@mapNotNull null
-            elem.toTypeSpec(inspector).toBuilder().apply { tags[TypeElement::class] = elem }.build()
+            elem.toTypeSpec(inspector).toBuilder().tag(TypeElement::class, elem).build()
         }
 
         val genFuncs = classMetadata.flatMap { klass ->
@@ -107,7 +108,7 @@ class MatchersProcessor : AbstractProcessor() {
                 FunSpec
                     .builder(fname)
                     .addModifiers(fmodifiers.map { KModifier.valueOf(it.toUpperCase()) })
-                    .apply { tags[PackageName::class] = PackageName(`package`) }
+                    .tag(PackageName::class, PackageName(`package`))
                     .addTypeVariables(unapplierTyVars)
                     .addTypeVariables(escapedTyVars)
                     .apply {
@@ -158,7 +159,6 @@ class MatchersProcessor : AbstractProcessor() {
         }
 
         genFuncs.groupBy { it.tag(PackageName::class)!! }.map { (p, funcs) ->
-            println(p)
             FileSpec.builder(p.name, "GeneratedMatchers")
                 .apply {
                     for (f in funcs) {
