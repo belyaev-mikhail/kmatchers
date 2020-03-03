@@ -133,7 +133,7 @@ fun main() {
     println(xx)
 
     2 to listOf("Hello") match {
-        case(Pair(first = const{ 3 } with _1(), second = any<List<String>>())) of {
+        case(Pair(first = const{ 3 as Int } with _1(), second = any<List<String>>())) of {
             println("first")
         }
 

@@ -1,19 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
+    <parent>
+        <artifactId>kmatchers-parent</artifactId>
+        <groupId>ru.spbstu</groupId>
+        <version>0.0.0.1-SNAPSHOT</version>
+    </parent>
+
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>ru.spbstu</groupId>
-    <artifactId>kmatchers-parent</artifactId>
-    <version>0.0.0.1-SNAPSHOT</version>
-    <modules>
-        <module>kmatchers-processor</module>
-        <module>kmatchers</module>
-        <module>kmatchers-example</module>
-    </modules>
-    <packaging>pom</packaging>
+    <artifactId>kmatchers-example</artifactId>
+    <packaging>jar</packaging>
 
-    <name>kmatchers-parent</name>
+    <name>kmatchers-example</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -29,6 +28,17 @@
             <version>${kotlin.version}</version>
         </dependency>
         <dependency>
+            <groupId>ru.spbstu</groupId>
+            <artifactId>kmatchers</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ru.spbstu</groupId>
+            <artifactId>kmatchers-processor</artifactId>
+            <version>${project.parent.version}</version>
+            <optional>true</optional>
+        </dependency>
+        <dependency>
             <groupId>org.jetbrains.kotlin</groupId>
             <artifactId>kotlin-test-junit</artifactId>
             <version>${kotlin.version}</version>
@@ -39,11 +49,6 @@
             <artifactId>junit</artifactId>
             <version>${junit.version}</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>ru.spbstu</groupId>
-            <artifactId>kotlin-wheels</artifactId>
-            <version>0.0.0.6</version>
         </dependency>
     </dependencies>
 
@@ -57,6 +62,26 @@
                 <artifactId>kotlin-maven-plugin</artifactId>
                 <version>${kotlin.version}</version>
                 <executions>
+                    <execution>
+                        <id>kapt</id>
+                        <goals>
+                            <goal>kapt</goal>
+                        </goals>
+                        <configuration>
+                            <sourceDirs>
+                                <sourceDir>src/main/java</sourceDir>
+                                <sourceDir>src/main/kotlin</sourceDir>
+                            </sourceDirs>
+                            <annotationProcessorPaths>
+                                <!-- Specify your annotation processors here. -->
+                                <annotationProcessorPath>
+                                    <groupId>ru.spbstu</groupId>
+                                    <artifactId>kmatchers-processor</artifactId>
+                                    <version>${project.parent.version}</version>
+                                </annotationProcessorPath>
+                            </annotationProcessorPaths>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>compile</id>
                         <phase>compile</phase>
@@ -87,12 +112,5 @@
             </plugin>
         </plugins>
     </build>
-
-    <repositories>
-        <repository>
-            <id>bintray-vorpal-research-kotlin-maven</id>
-            <url>http://dl.bintray.com/vorpal-research/kotlin-maven</url>
-        </repository>
-    </repositories>
 
 </project>
