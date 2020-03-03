@@ -52,7 +52,7 @@ fun <T1, T2, T3, T4, T5, T6> Const(
     arg is Const && value.unapply(arg.value, matcher)
 }
 
-fun simplifyStep(e: Expr): Expr = match(e) {
+fun simplifyStep(e: Expr): Expr = e match {
     case(Const(_1()) + Const(_2())) of { (l, r) ->
         Const(l + r)
     }
@@ -85,7 +85,7 @@ fun simplify(e: Expr): Expr {
     return expr
 }
 
-fun evalStep(e: Expr): Long = match(e) {
+fun evalStep(e: Expr): Long = e match {
     case(ofType<Const>() with _1()) of { (v) -> v.value }
     case(_1<Expr>() + _2<Expr>()) of { (l, r) ->
         evalStep(l) + evalStep(r)
@@ -99,7 +99,7 @@ fun main() {
     println(simplify(Const(2) + Const(4) + Const(6)))
     println(simplify(Const(2) + Var("y")))
 
-    match((0..10).asSequence()) {
+    (0..10).asSequence() match {
         case(sequence(_1<Int>(), rest = sequence(_2<Int>()))) of { (a, b) -> a / b }
 
         otherwise { 2 }
@@ -107,7 +107,7 @@ fun main() {
 
     val cc = collection(const { 1 }, const { 2 }, rest = _1())
 
-    match(listOf<Int>(1,2,3,4)) {
+    listOf<Int>(1,2,3,4) match {
         case(cc) of { (it) ->
             println(it.toList())
         }
@@ -119,11 +119,11 @@ fun main() {
         otherwise { }
     }
 
-    val failing = match(2) {
+    val failing = 2 match {
         otherwise { "" }
     }
 
-    val xx = match(mapOf(3 to "World", 2 to "Hello")) {
+    val xx = mapOf(3 to "World", 2 to "Hello") match {
         case(mapContaining(2 to _1<String>(), 3 to _2<String>())) of { (v2, v3) ->
             "$v2 $v3"
         }
@@ -132,7 +132,7 @@ fun main() {
     }
     println(xx)
 
-    match(2 to listOf("Hello")) {
+    2 to listOf("Hello") match {
         case(Pair(first = const{ 3 } with _1(), second = any<List<String>>())) of {
             println("first")
         }
@@ -147,13 +147,14 @@ fun main() {
         otherwise { println("last") }
     }
 
-    match(Any()) {
+    Any() match {
         case(ofType<List<Int>>() with _1()) of {
 
         }
 
         case(ofType<Int>() with _1()) or
-                case(ofType<List<Int>>() with collection(_1())) of { (it) ->
+                case(ofType<List<Int>>() with collection(_1())) or
+                case(ofType<Set<Int>>() with collection(size = _1()) )of { (it) ->
         }
 
     }

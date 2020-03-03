@@ -37,7 +37,7 @@ class MatchScope<T, R>(val value: T, @PublishedApi internal val dryRun: Boolean 
     internal var applicable: Boolean = false
 
     inline infix fun <T1, T2, T3, T4, T5, T6> Case<T1, T2, T3, T4, T5, T6, T>.of(body: FakeReceiver.(MatchResult<T1, T2, T3, T4, T5, T6>) -> R) {
-        if (result.isEmpty() || !applicable) {
+        if (!applicable) {
             when(val matchingResult = unapply(value)) {
                 null -> {}
                 else -> {
@@ -49,7 +49,7 @@ class MatchScope<T, R>(val value: T, @PublishedApi internal val dryRun: Boolean 
     }
 
     inline fun otherwise(body: FakeReceiver.() -> R) {
-        if (result.isEmpty() || !applicable) {
+        if (!applicable) {
             applicable = true
             if(!dryRun) result = Option.just(FakeReceiver.body())
         }
@@ -57,14 +57,14 @@ class MatchScope<T, R>(val value: T, @PublishedApi internal val dryRun: Boolean 
 }
 
 @UseExperimental(ExperimentalTypeInference::class)
-inline fun <T, R> match(value: T, @BuilderInference body: MatchScope<T, R>.() -> Unit): R = run {
-    val scope = MatchScope<T, R>(value)
+inline infix fun <T, R> T.match(@BuilderInference body: MatchScope<T, R>.() -> Unit): R = run {
+    val scope = MatchScope<T, R>(this)
     scope.body()
     scope.result.getOrElse { throw IllegalStateException("Matching failed") }
 }
 
 class PartialFunction<in T, out R> (val body: MatchScope<@UnsafeVariance T, @UnsafeVariance R>.() -> Unit): (T) -> R {
-    override fun invoke(arg: T): R = match(arg, body)
+    override fun invoke(arg: T): R = arg.match(body)
 
     fun isApplicableTo(arg: T): Boolean {
         val scope = MatchScope<T, R>(arg, dryRun = true)
